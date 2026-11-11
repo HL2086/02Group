@@ -1,5 +1,4 @@
 // functions/api/raid.js
-// 网站超级管理员口令（可在 Cloudflare 环境变量中配 ADMIN_KEY，未配则默认用这个）
 const DEFAULT_SUPER_ADMIN_KEY = "admin888";
 
 export async function onRequest(context) {
@@ -24,7 +23,7 @@ export async function onRequest(context) {
     if (request.method === 'GET') {
       const action = url.searchParams.get('action');
 
-      // 分支 A：获取所有真实历史团本列表
+      // 分支 A：获取历史真实团本列表
       if (action === 'list_history') {
         const { results: raids } = await db.prepare(`
           SELECT 
@@ -78,7 +77,8 @@ export async function onRequest(context) {
           healerCap: raid.healer_cap,
           time: raid.raid_time,
           note: raid.note,
-          leaderName: raid.leader_name
+          leaderName: raid.leader_name,
+          createdAt: raid.created_at
         },
         rosterMap
       }), { headers: corsHeaders });
@@ -89,7 +89,7 @@ export async function onRequest(context) {
       const data = await request.json();
       const action = data.action;
 
-      // 动作 0：超级管理员验证
+      // 超级管理员验证
       if (action === 'admin_auth') {
         if (data.superKey === SUPER_KEY) {
           return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
@@ -97,7 +97,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ error: '管理员口令错误！' }), { status: 403, headers: corsHeaders });
       }
 
-      // 动作 0.1：超级管理员删除整个历史团本
+      // 超级管理员彻底删除团本
       if (action === 'admin_delete_raid') {
         if (data.superKey !== SUPER_KEY) {
           return new Response(JSON.stringify({ error: '无权操作' }), { status: 403, headers: corsHeaders });
@@ -108,7 +108,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
-      // 动作 1：保存/修改团队配置
+      // 保存团队配置
       if (action === 'save_config') {
         const { raidId, title, size, tankCap, healerCap, time, note, adminToken } = data;
         const existing = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
@@ -127,7 +127,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true, raidId }), { headers: corsHeaders });
       }
 
-      // 动作 2：席位报名/修改
+      // 席位登记 / 修改
       if (action === 'signup') {
         const { raidId, slotId, oldSlotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode, adminToken } = data;
 
@@ -173,7 +173,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
-      // 动作 3：验证席位口令
+      // 验证口令
       if (action === 'verify_passcode') {
         const { raidId, slotId, passcode, adminToken } = data;
         const raid = await db.prepare("SELECT admin_token FROM raids WHERE id = ?").bind(raidId).first();
@@ -188,7 +188,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ error: '口令错误！' }), { status: 403, headers: corsHeaders });
       }
 
-      // 动作 4：移除席位登记
+      // 移除登记
       if (action === 'remove_signup') {
         const { raidId, slotId, passcode, adminToken } = data;
         const raid = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
