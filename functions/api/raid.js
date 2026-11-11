@@ -24,11 +24,12 @@ export async function onRequest(context) {
       }
 
       const raid = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
+      // 如果房间不存在，返回 404，由前端决定何时保存，绝不在后端自动新建空行
       if (!raid) {
         return new Response(JSON.stringify({ notFound: true }), { status: 404, headers: corsHeaders });
       }
 
-      // 查询时不向全团暴露口令 passcode
+      // 提取席位名册（绝不暴露密码 passcode）
       const { results: signups } = await db.prepare(
         "SELECT slot_id, player_name, class_key, main_spec, off_spec, role, gs, note FROM signups WHERE raid_id = ?"
       ).bind(raidId).all();
@@ -67,7 +68,7 @@ export async function onRequest(context) {
       const data = await request.json();
       const action = data.action;
 
-      // 保存团队活动配置
+      // 保存团队活动配置（真实触发创建/修改）
       if (action === 'save_config') {
         const { raidId, title, size, tankCap, healerCap, time, note, adminToken } = data;
         const existing = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
@@ -89,16 +90,27 @@ export async function onRequest(context) {
       // 席位登记 / 修改
       if (action === 'signup') {
         const { raidId, slotId, oldSlotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode, adminToken } = data;
+
+        // 惰性安全检查：如果团长直接登记第一人而未预先点击“保存设置”，自动保底初始化团队主记录
+        const raid = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
+        if (!raid) {
+          await db.prepare(
+            "INSERT INTO raids (id, title, size, tank_cap, healer_cap, raid_time, note, leader_name, admin_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          ).bind(raidId, 'NAXX 开荒首通', 10, 2, 2, '周五 19:30', '', name, adminToken || '').run();
+        }
+
+        // 防撞坑抢占检查
         const targetOccupy = await db.prepare("SELECT * FROM signups WHERE raid_id = ? AND slot_id = ?").bind(raidId, slotId).first();
         if (targetOccupy && (!oldSlotId || targetOccupy.slot_id !== oldSlotId)) {
           return new Response(JSON.stringify({ error: '该坑位已被他人抢占！' }), { status: 409, headers: corsHeaders });
         }
 
+        // 修改时的原口令核验
         if (oldSlotId) {
           const oldRecord = await db.prepare("SELECT * FROM signups WHERE raid_id = ? AND slot_id = ?").bind(raidId, oldSlotId).first();
           if (oldRecord) {
-            const raid = await db.prepare("SELECT admin_token FROM raids WHERE id = ?").bind(raidId).first();
-            const isLeader = raid && raid.admin_token === adminToken;
+            const currentRaid = raid || await db.prepare("SELECT admin_token FROM raids WHERE id = ?").bind(raidId).first();
+            const isLeader = currentRaid && currentRaid.admin_token === adminToken;
             if (!isLeader && oldRecord.passcode !== passcode) {
               return new Response(JSON.stringify({ error: '口令错误，无法修改！' }), { status: 403, headers: corsHeaders });
             }
@@ -108,6 +120,7 @@ export async function onRequest(context) {
           }
         }
 
+        // 写入新数据
         await db.prepare(
           `INSERT INTO signups (raid_id, slot_id, player_name, class_key, main_spec, off_spec, role, gs, note, passcode)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -116,8 +129,9 @@ export async function onRequest(context) {
            off_spec = excluded.off_spec, role = excluded.role, gs = excluded.gs, note = excluded.note, passcode = excluded.passcode`
         ).bind(raidId, slotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode).run();
 
-        const raid = await db.prepare("SELECT leader_name FROM raids WHERE id = ?").bind(raidId).first();
-        if (raid && !raid.leader_name) {
+        // 首次登记且团队暂无团长角色名时，顺延设定
+        const updatedRaid = await db.prepare("SELECT leader_name FROM raids WHERE id = ?").bind(raidId).first();
+        if (updatedRaid && !updatedRaid.leader_name) {
           await db.prepare("UPDATE raids SET leader_name = ? WHERE id = ?").bind(name, raidId).run();
         }
 
@@ -155,6 +169,7 @@ export async function onRequest(context) {
 
         await db.prepare("DELETE FROM signups WHERE raid_id = ? AND slot_id = ?").bind(raidId, slotId).run();
 
+        // 移除团长本人时，自动顺延给下一个人
         if (raid && raid.leader_name === member.player_name) {
           const nextLeader = await db.prepare("SELECT player_name FROM signups WHERE raid_id = ? ORDER BY id ASC LIMIT 1").bind(raidId).first();
           const nextName = nextLeader ? nextLeader.player_name : '';
