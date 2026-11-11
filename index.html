@@ -131,10 +131,10 @@
         <div class="flex items-center gap-1.5">
           <span id="sync-indicator" class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" title="云端实时同步中"></span>
           <span id="display-raid-size" class="text-xs font-mono font-bold text-amber-500 shrink-0">10人</span>
-          <h1 id="display-raid-title" class="text-sm font-bold text-amber-400 tracking-wide truncate">加载中...</h1>
+          <h1 id="display-raid-title" class="text-sm font-bold text-amber-400 tracking-wide truncate">NAXX 开荒首通</h1>
         </div>
         <p class="text-[11px] text-neutral-400 font-mono mt-0.5">
-          <span id="display-raid-time">待定</span> 
+          <span id="display-raid-time">周五 19:30</span> 
           (<span id="display-member-count" class="text-neutral-200 font-semibold">0</span>/<span id="display-total-cap">10</span>人)
         </p>
         <p id="display-raid-note" class="text-[11px] text-neutral-300 leading-snug font-mono truncate mt-1 text-amber-100/90"></p>
@@ -379,6 +379,7 @@
       localStorage.setItem('wow_raid_passcodes', JSON.stringify(mySavedPasscodes));
     }
 
+    // 惰性持久化：纯访问绝不碰云端数据库
     async function init() {
       renderClassPicker();
       initKeyboardShield();
@@ -387,45 +388,53 @@
       currentRaidId = params.get('id');
 
       if (!currentRaidId) {
+        // 仅在本地生成房间号，不往云端插入任何记录
         currentRaidId = Math.random().toString(36).substring(2, 8);
         window.history.replaceState({}, '', `?id=${currentRaidId}`);
         const adminToken = 'adm_' + Math.random().toString(36).substring(2, 12);
         localStorage.setItem(`admin_token_${currentRaidId}`, adminToken);
         raidState.isLeaderLocal = true;
-        await syncSaveConfig();
+        updateView(); // 纯离线优先渲染，秒开
       } else {
         const localAdmin = localStorage.getItem(`admin_token_${currentRaidId}`);
         if (localAdmin) raidState.isLeaderLocal = true;
+        updateView();
+        // 带有真实 id 参数时，才去拉取云端
+        await fetchCloudData();
       }
 
-      await fetchCloudData();
+      // 静默轮询（每 4 秒）
       setInterval(fetchCloudData, 4000);
     }
 
     async function fetchCloudData() {
+      const syncDot = document.getElementById('sync-indicator');
       try {
         const res = await fetch(`/api/raid?id=${currentRaidId}`);
+        // 核心修复：如果是 404（该团尚未被实际保存），直接静默返回，绝不自动新建！
+        if (res.status === 404) return;
+
         if (!res.ok) {
-          if (res.status === 404) {
-            await syncSaveConfig();
-            return;
-          }
+          if (syncDot) syncDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500 shrink-0';
           return;
         }
+
         const data = await res.json();
-        if (data.success) {
-          raidState.title = data.raid.title;
-          raidState.size = data.raid.size;
-          raidState.tankCap = data.raid.tankCap;
-          raidState.healerCap = data.raid.healerCap;
-          raidState.time = data.raid.time;
-          raidState.note = data.raid.note;
+        if (data.success && data.raid) {
+          raidState.title = data.raid.title || raidState.title;
+          raidState.size = data.raid.size || 10;
+          raidState.tankCap = data.raid.tankCap ?? 2;
+          raidState.healerCap = data.raid.healerCap ?? 2;
+          raidState.time = data.raid.time || '周五 19:30';
+          raidState.note = data.raid.note || '';
           raidState.leaderName = data.raid.leaderName || '';
           rosterMap = data.rosterMap || {};
+
+          if (syncDot) syncDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0';
           updateView();
         }
       } catch (err) {
-        console.warn('云端同步暂停:', err);
+        if (syncDot) syncDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-500 shrink-0';
       }
     }
 
@@ -544,6 +553,7 @@
       document.getElementById('raid-config-modal').classList.toggle('hidden', !show);
     }
 
+    // 保存开团配置至云端（真实动作触发入库）
     async function syncSaveConfig() {
       const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
       await fetch('/api/raid', {
