@@ -23,7 +23,7 @@ export async function onRequest(context) {
     if (request.method === 'GET') {
       const action = url.searchParams.get('action');
 
-      // 分支 A：获取历史真实团本列表
+      // 分支 A：获取历史团本列表
       if (action === 'list_history') {
         const { results: raids } = await db.prepare(`
           SELECT 
@@ -51,7 +51,7 @@ export async function onRequest(context) {
       }
 
       const { results: signups } = await db.prepare(
-        "SELECT slot_id, player_name, class_key, main_spec, off_spec, role, gs, note FROM signups WHERE raid_id = ?"
+        "SELECT slot_id, player_name, class_key, main_spec, off_spec, role, gs, note, device_id FROM signups WHERE raid_id = ?"
       ).bind(raidId).all();
 
       const rosterMap = {};
@@ -63,7 +63,8 @@ export async function onRequest(context) {
           offSpec: item.off_spec || '',
           role: item.role,
           gs: item.gs,
-          note: item.note || ''
+          note: item.note || '',
+          deviceId: item.device_id || ''
         };
       }
 
@@ -94,7 +95,17 @@ export async function onRequest(context) {
         if (data.superKey === SUPER_KEY) {
           return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
         }
-        return new Response(JSON.stringify({ error: '管理员口令错误！' }), { status: 403, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: '超级管理员口令错误！' }), { status: 403, headers: corsHeaders });
+      }
+
+      // 团长身份核验与换设备认领
+      if (action === 'claim_leader') {
+        const { raidId, adminToken } = data;
+        const raid = await db.prepare("SELECT admin_token FROM raids WHERE id = ?").bind(raidId).first();
+        if (raid && raid.admin_token === adminToken) {
+          return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+        }
+        return new Response(JSON.stringify({ error: '团长密钥无效，认领失败！' }), { status: 403, headers: corsHeaders });
       }
 
       // 超级管理员彻底删除团本
@@ -108,13 +119,13 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
-      // 保存团队配置
+      // 保存团队配置（严格校验团长 Token）
       if (action === 'save_config') {
         const { raidId, title, size, tankCap, healerCap, time, note, adminToken } = data;
         const existing = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
         if (existing) {
           if (existing.admin_token !== adminToken) {
-            return new Response(JSON.stringify({ error: '无开团管理权限' }), { status: 403, headers: corsHeaders });
+            return new Response(JSON.stringify({ error: '无开团管理权限，仅团长可修改团队配置！' }), { status: 403, headers: corsHeaders });
           }
           await db.prepare(
             "UPDATE raids SET title = ?, size = ?, tank_cap = ?, healer_cap = ?, raid_time = ?, note = ? WHERE id = ?"
@@ -127,9 +138,13 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true, raidId }), { headers: corsHeaders });
       }
 
-      // 席位登记 / 修改
+      // 席位登记 / 修改（单人单角色设备级限制 + 并发抢坑校验）
       if (action === 'signup') {
-        const { raidId, slotId, oldSlotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode, adminToken } = data;
+        const { raidId, slotId, oldSlotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode, adminToken, deviceId } = data;
+
+        if (!deviceId) {
+          return new Response(JSON.stringify({ error: '无法识别设备指纹，禁止登记！' }), { status: 400, headers: corsHeaders });
+        }
 
         const raid = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
         if (!raid) {
@@ -138,11 +153,26 @@ export async function onRequest(context) {
           ).bind(raidId, 'NAXX 开荒首通', 10, 2, 2, '周五 19:30', '', name, adminToken || '').run();
         }
 
+        // 核心规则：同一设备单角色限制（同房间不同设备不受影响，新登记必须排他）
+        if (!oldSlotId) {
+          const deviceOccupied = await db.prepare(
+            "SELECT player_name, slot_id FROM signups WHERE raid_id = ? AND device_id = ?"
+          ).bind(raidId, deviceId).first();
+
+          if (deviceOccupied) {
+            return new Response(JSON.stringify({ 
+              error: `您已在本团登记了角色【${deviceOccupied.player_name}】，每人仅限登记一个席位！如需更换请先修改或移除原席位。` 
+            }), { status: 403, headers: corsHeaders });
+          }
+        }
+
+        // 坑位抢占并发安全拦截
         const targetOccupy = await db.prepare("SELECT * FROM signups WHERE raid_id = ? AND slot_id = ?").bind(raidId, slotId).first();
         if (targetOccupy && (!oldSlotId || targetOccupy.slot_id !== oldSlotId)) {
           return new Response(JSON.stringify({ error: '该坑位已被他人抢占！' }), { status: 409, headers: corsHeaders });
         }
 
+        // 修改时的身份权限校验
         if (oldSlotId) {
           const oldRecord = await db.prepare("SELECT * FROM signups WHERE raid_id = ? AND slot_id = ?").bind(raidId, oldSlotId).first();
           if (oldRecord) {
@@ -157,13 +187,15 @@ export async function onRequest(context) {
           }
         }
 
+        // 写入并绑定当前设备指纹
         await db.prepare(
-          `INSERT INTO signups (raid_id, slot_id, player_name, class_key, main_spec, off_spec, role, gs, note, passcode)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO signups (raid_id, slot_id, player_name, class_key, main_spec, off_spec, role, gs, note, passcode, device_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(raid_id, slot_id) DO UPDATE SET
            player_name = excluded.player_name, class_key = excluded.class_key, main_spec = excluded.main_spec,
-           off_spec = excluded.off_spec, role = excluded.role, gs = excluded.gs, note = excluded.note, passcode = excluded.passcode`
-        ).bind(raidId, slotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode).run();
+           off_spec = excluded.off_spec, role = excluded.role, gs = excluded.gs, note = excluded.note, passcode = excluded.passcode,
+           device_id = excluded.device_id`
+        ).bind(raidId, slotId, name, classKey, mainSpec, offSpec, role, gs, note, passcode, deviceId).run();
 
         const updatedRaid = await db.prepare("SELECT leader_name FROM raids WHERE id = ?").bind(raidId).first();
         if (updatedRaid && !updatedRaid.leader_name) {
@@ -188,7 +220,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ error: '口令错误！' }), { status: 403, headers: corsHeaders });
       }
 
-      // 移除登记
+      // 移除席位登记
       if (action === 'remove_signup') {
         const { raidId, slotId, passcode, adminToken } = data;
         const raid = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
