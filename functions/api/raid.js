@@ -1,11 +1,11 @@
 // functions/api/raid.js
-const DEFAULT_SUPER_ADMIN_KEY = "admin888";
-
 export async function onRequest(context) {
   const { request, env } = context;
   const db = env.DB;
   const url = new URL(request.url);
-  const SUPER_KEY = env.ADMIN_KEY || DEFAULT_SUPER_ADMIN_KEY;
+  
+  // 直接从 Cloudflare 后台加密变量读取，GitHub 代码中彻底不留任何密码
+  const SUPER_KEY = env.ADMIN_KEY;
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,7 +23,6 @@ export async function onRequest(context) {
     if (request.method === 'GET') {
       const action = url.searchParams.get('action');
 
-      // 分支 A：获取大厅与历史团本列表（支持传入 deviceId 识别本机参团状态）
       if (action === 'list_history') {
         const deviceId = url.searchParams.get('deviceId') || '';
         const { results: raids } = await db.prepare(`
@@ -41,7 +40,6 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true, list: raids || [] }), { headers: corsHeaders });
       }
 
-      // 分支 B：根据 id 拉取单一团本详情
       const raidId = url.searchParams.get('id');
       if (!raidId) {
         return new Response(JSON.stringify({ error: '缺少团队ID' }), { status: 400, headers: corsHeaders });
@@ -92,17 +90,20 @@ export async function onRequest(context) {
       const data = await request.json();
       const action = data.action;
 
-      // 超级管理员验证
+      // 超级管理员验证（严格校验 env.ADMIN_KEY）
       if (action === 'admin_auth') {
+        if (!SUPER_KEY) {
+          return new Response(JSON.stringify({ error: '后台尚未配置 ADMIN_KEY 密钥！' }), { status: 500, headers: corsHeaders });
+        }
         if (data.superKey === SUPER_KEY) {
           return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
         }
-        return new Response(JSON.stringify({ error: '超级管理员口令错误！' }), { status: 403, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: '管理员密钥错误！' }), { status: 403, headers: corsHeaders });
       }
 
       // 超级管理员彻底删除团本
       if (action === 'admin_delete_raid') {
-        if (data.superKey !== SUPER_KEY) {
+        if (!SUPER_KEY || data.superKey !== SUPER_KEY) {
           return new Response(JSON.stringify({ error: '无权操作' }), { status: 403, headers: corsHeaders });
         }
         const { targetRaidId } = data;
@@ -111,7 +112,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
-      // 保存团队配置（严格校验团长 Token）
+      // 保存团队配置
       if (action === 'save_config') {
         const { raidId, title, size, tankCap, healerCap, time, note, adminToken } = data;
         const existing = await db.prepare("SELECT * FROM raids WHERE id = ?").bind(raidId).first();
@@ -124,7 +125,7 @@ export async function onRequest(context) {
           ).bind(title, size, tankCap, healerCap, time, note, raidId).run();
         } else {
           await db.prepare(
-            "INSERT INTO raids (id, title, size, tank_cap, healer_cap, raid_time, note, admin_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            "INSERT INTO raids (id, title, size, tank_cap = ?, healer_cap = ?, raid_time, note, admin_token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
           ).bind(raidId, title, size, tankCap, healerCap, time, note, adminToken).run();
         }
         return new Response(JSON.stringify({ success: true, raidId }), { headers: corsHeaders });
@@ -151,9 +152,7 @@ export async function onRequest(context) {
           ).bind(raidId, deviceId).first();
 
           if (deviceOccupied) {
-            return new Response(JSON.stringify({ 
-              error: `不要重复登记` 
-            }), { status: 403, headers: corsHeaders });
+            return new Response(JSON.stringify({ error: '不要重复登记' }), { status: 403, headers: corsHeaders });
           }
         }
 
