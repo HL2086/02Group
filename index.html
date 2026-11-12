@@ -143,8 +143,11 @@
       <div class="flex flex-col items-end gap-1.5 shrink-0">
         <div class="flex items-center gap-2 text-[11px]">
           <button onclick="copyInviteMacro()" class="text-sky-400 hover:text-sky-300 font-medium transition-colors">复制宏</button>
-          <button id="btn-config-trigger" onclick="openRaidConfigModal()" class="text-amber-400 hover:text-amber-300 font-medium transition-colors">开团设置</button>
-          <span class="text-neutral-700">|</span>
+          
+          <!-- 开团设置按钮：仅团长设备可见 -->
+          <button id="btn-config-trigger" onclick="openRaidConfigModal()" class="text-amber-400 hover:text-amber-300 font-medium transition-colors hidden">开团设置</button>
+          
+          <span id="divider-config" class="text-neutral-700 hidden">|</span>
           <button onclick="handleShare()" class="text-neutral-400 hover:text-neutral-200 transition-colors">分享</button>
           <button onclick="toggleHistory(true)" class="text-neutral-400 hover:text-neutral-200 transition-colors">历史</button>
         </div>
@@ -177,11 +180,14 @@
     </div>
   </main>
 
-  <!-- 弹窗 1：开团活动参数设置 -->
+  <!-- 弹窗 1：开团活动参数设置（仅团长可操作） -->
   <div id="raid-config-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-[#13141a] border border-neutral-800 w-full max-w-md rounded-t-xl sm:rounded-xl p-3.5 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between pb-2 border-b border-neutral-800 mb-2.5">
-        <h3 class="text-sm font-bold text-amber-400">开团活动配置</h3>
+        <div class="flex items-center gap-1.5">
+          <h3 class="text-sm font-bold text-amber-400">开团活动配置</h3>
+          <span class="text-[9px] px-1 rounded bg-amber-950 text-amber-400 border border-amber-800/40">团长特权</span>
+        </div>
         <button onclick="toggleRaidConfigModal(false)" class="text-neutral-400 hover:text-neutral-200 text-lg leading-none px-1">✕</button>
       </div>
 
@@ -225,15 +231,6 @@
         <div class="flex items-center gap-2">
           <label class="w-14 shrink-0 text-neutral-400 text-right">备注：</label>
           <input type="text" id="cfg-raid-note" placeholder="分配方式及打团说明" value="一需多贪，带好合剂药水，守时不鸽" class="flex-1 bg-neutral-900 border border-neutral-700/80 rounded px-2 py-1 text-neutral-200 focus:outline-none focus:border-amber-500">
-        </div>
-
-        <!-- 封存状态开关 -->
-        <div class="flex items-center gap-2 pt-1 border-t border-neutral-800/80">
-          <label class="w-14 shrink-0 text-neutral-400 text-right">锁定：</label>
-          <label class="flex items-center gap-1.5 cursor-pointer text-neutral-300">
-            <input type="checkbox" id="cfg-raid-locked" class="rounded bg-neutral-900 border-neutral-700 text-amber-500 focus:ring-0">
-            <span>封存并锁定名册（打完封板，禁止再改）</span>
-          </label>
         </div>
 
         <div class="pt-3">
@@ -282,10 +279,12 @@
 
         <div class="flex items-center gap-2">
           <label class="w-12 shrink-0 text-neutral-400 text-right">口令：</label>
-          <input type="text" id="input-passcode" required maxlength="50" placeholder="防止他人篡改的临时口令" class="flex-1 bg-neutral-900 border border-neutral-700/80 rounded px-2 py-1 text-neutral-100 focus:outline-none focus:border-amber-500 font-mono">
+          <input type="text" id="input-passcode" required maxlength="50" placeholder="用于后续修改的临时口令" class="flex-1 bg-neutral-900 border border-neutral-700/80 rounded px-2 py-1 text-neutral-100 focus:outline-none focus:border-amber-500 font-mono">
         </div>
 
-        <div class="pt-3">
+        <p class="text-[10px] text-neutral-500 pt-0.5">※ 每台设备仅可登记 1 个角色席位。同房间多台设备可各自独立登记。</p>
+
+        <div class="pt-2">
           <button type="submit" id="btn-submit" class="w-full py-2 bg-amber-500 hover:bg-amber-400 active:scale-[0.99] text-neutral-950 font-bold rounded text-xs transition-all">
             确认登记该席位
           </button>
@@ -324,7 +323,7 @@
     <div class="bg-[#14151b] border border-neutral-800 rounded-lg p-4 w-full max-w-sm space-y-3">
       <div class="flex items-center justify-between pb-2 border-b border-neutral-800">
         <div class="flex items-center gap-1.5">
-          <h4 class="text-xs font-bold text-amber-400 cursor-pointer select-none" onclick="triggerAdminAuthPrompt()" title="点击可验证管理员口令">历史组团记录</h4>
+          <h4 class="text-xs font-bold text-amber-400 select-none">历史组团记录</h4>
           <span id="super-admin-tag" class="text-[9px] px-1 rounded bg-amber-950 text-amber-400 border border-amber-800/40 hidden">管理模式</span>
         </div>
         <button onclick="toggleHistory(false)" class="text-neutral-400 hover:text-neutral-200 text-sm">✕</button>
@@ -375,7 +374,6 @@
       time: '周五 19:30',
       note: '一需多贪，带好合剂药水，守时不鸽。',
       leaderName: '',
-      isLocked: false,
       isLeaderLocal: false
     };
 
@@ -389,6 +387,13 @@
 
     let isReadOnlyMode = false;
     let pollingTimer = null;
+
+    // 独立设备指纹：确保同屋同Wi-Fi下不同手机/电脑独立，但单设备严格单角色
+    let localDeviceId = localStorage.getItem('wow_device_id');
+    if (!localDeviceId) {
+      localDeviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+      localStorage.setItem('wow_device_id', localDeviceId);
+    }
 
     let mySavedPasscodes = JSON.parse(localStorage.getItem('wow_raid_passcodes') || '{}');
     let superAdminKey = localStorage.getItem('wow_super_admin_key') || '';
@@ -425,8 +430,7 @@
 
     function startPolling() {
       if (pollingTimer) clearInterval(pollingTimer);
-      // 若处于封存/只读态，不进行轮询以节约网络与配额
-      if (isReadOnlyMode || raidState.isLocked) return;
+      if (isReadOnlyMode) return;
       pollingTimer = setInterval(fetchCloudData, 4000);
     }
 
@@ -450,20 +454,18 @@
           raidState.time = data.raid.time || '周五 19:30';
           raidState.note = data.raid.note || '';
           raidState.leaderName = data.raid.leaderName || '';
-          raidState.isLocked = !!data.raid.isLocked;
           rosterMap = data.rosterMap || {};
 
-          // 核心自动判定：如果该团本创建时间已超过 48 小时，自动判定锁定
+          // 核心自动判定：创建超过 48 小时的活动自动归档
           if (data.raid.createdAt) {
             const createTime = new Date(data.raid.createdAt).getTime();
-            const now = new Date().getTime();
-            if (now - createTime > 48 * 3600 * 1000) {
-              raidState.isLocked = true;
+            if (Date.now() - createTime > 48 * 3600 * 1000) {
+              isReadOnlyMode = true;
             }
           }
 
           if (syncDot) {
-            if (isReadOnlyMode || raidState.isLocked) {
+            if (isReadOnlyMode) {
               syncDot.className = 'inline-block w-2 h-2 rounded-full bg-neutral-600 shrink-0';
               syncDot.title = '历史封存，已锁定';
             } else {
@@ -502,13 +504,19 @@
       return Object.values(rosterMap).filter(Boolean);
     }
 
-    function isCurrentReadOnly() {
-      return isReadOnlyMode || raidState.isLocked;
+    // 检查当前设备在当前团本中是否已有席位
+    function getMyEnrolledSlot() {
+      for (const [slotId, p] of Object.entries(rosterMap)) {
+        if (p && p.deviceId === localDeviceId) {
+          return { slotId, ...p };
+        }
+      }
+      return null;
     }
 
     function updateView() {
       const currentList = getValidRosterList();
-      const locked = isCurrentReadOnly();
+      const locked = isReadOnlyMode;
 
       document.getElementById('display-raid-size').innerText = `${raidState.size}人`;
       
@@ -521,14 +529,15 @@
       document.getElementById('display-raid-note').innerText = raidState.note || '暂无团队备注';
       document.getElementById('display-raid-note').title = raidState.note || '';
 
+      // 核心控制 1：开团设置按钮仅团长可见且未封存时可用
       const cfgBtn = document.getElementById('btn-config-trigger');
-      if (cfgBtn) {
-        // 如果已封存且非本机团长，隐藏开团设置
-        if (locked && !raidState.isLeaderLocal) {
-          cfgBtn.classList.add('hidden');
-        } else {
-          cfgBtn.classList.remove('hidden');
-        }
+      const dividerEl = document.getElementById('divider-config');
+      if (raidState.isLeaderLocal && !locked) {
+        cfgBtn.classList.remove('hidden');
+        dividerEl.classList.remove('hidden');
+      } else {
+        cfgBtn.classList.add('hidden');
+        dividerEl.classList.add('hidden');
       }
 
       const dpsCap = Math.max(0, raidState.size - raidState.tankCap - raidState.healerCap);
@@ -558,13 +567,14 @@
     }
 
     function renderSlotRow(player, roleCode, slotId) {
-      const locked = isCurrentReadOnly();
+      const locked = isReadOnlyMode;
       if (player) {
         const isLeader = player.name === raidState.leaderName;
+        const isMine = player.deviceId === localDeviceId;
         return `
-          <div onclick="openPlayerAction('${slotId}')" class="row-grid-container py-1 px-1.5 text-xs rounded hover:bg-neutral-800/40 active:bg-neutral-800/60 cursor-pointer transition-colors select-none">
+          <div onclick="openPlayerAction('${slotId}')" class="row-grid-container py-1 px-1.5 text-xs rounded hover:bg-neutral-800/40 active:bg-neutral-800/60 cursor-pointer transition-colors select-none ${isMine ? 'bg-sky-950/15' : ''}">
             <div class="flex items-center justify-start overflow-hidden">
-              ${isLeader ? '<span class="leader-badge">团长</span>' : ''}
+              ${isLeader ? '<span class="leader-badge">团长</span>' : (isMine ? '<span class="text-[8px] font-mono px-0.5 rounded bg-sky-900/60 text-sky-300">我</span>' : '')}
             </div>
             <div class="font-mono text-[11px] truncate text-left">
               <span class="font-medium color-${player.classKey}">${player.mainSpec}</span>${player.offSpec ? `<span class="text-neutral-500">/${player.offSpec}</span>` : ''}
@@ -582,7 +592,6 @@
         `;
       } else {
         if (locked) {
-          // 锁定/只读模式：完全禁止点击，登记按钮替换为暗色空席
           return `
             <div class="row-grid-container py-1 px-1.5 text-xs rounded border border-neutral-900 bg-neutral-950/10 text-neutral-600 select-none cursor-default">
               <div class="text-neutral-800 font-mono text-[10px]">--</div>
@@ -613,12 +622,15 @@
     }
 
     function openRaidConfigModal() {
+      if (!raidState.isLeaderLocal) {
+        alert('仅团长有权限修改团队活动参数！');
+        return;
+      }
       document.getElementById('cfg-raid-title').value = raidState.title;
       document.getElementById('cfg-tank-count').value = raidState.tankCap;
       document.getElementById('cfg-healer-count').value = raidState.healerCap;
       document.getElementById('cfg-raid-time').value = raidState.time;
       document.getElementById('cfg-raid-note').value = raidState.note;
-      document.getElementById('cfg-raid-locked').checked = !!raidState.isLocked;
       toggleRaidConfigModal(true);
     }
 
@@ -640,7 +652,6 @@
           healerCap: raidState.healerCap,
           time: raidState.time,
           note: raidState.note,
-          isLocked: raidState.isLocked ? 1 : 0,
           adminToken
         })
       });
@@ -681,7 +692,6 @@
       raidState.healerCap = targetHealerCap;
       raidState.time = document.getElementById('cfg-raid-time').value.trim() || '待定';
       raidState.note = document.getElementById('cfg-raid-note').value.trim();
-      raidState.isLocked = document.getElementById('cfg-raid-locked').checked;
 
       const btn = document.getElementById('btn-save-config');
       btn.innerText = '正在保存至云端...';
@@ -693,12 +703,18 @@
       btn.disabled = false;
       updateView();
       toggleRaidConfigModal(false);
-      startPolling();
     }
 
     function openSignupForRole(roleCode, slotId) {
-      if (isCurrentReadOnly()) {
+      if (isReadOnlyMode) {
         alert('当前团队已封存归档，不允许继续登记！');
+        return;
+      }
+
+      // 核心控制 2：单人单角色限制前置拦截
+      const existing = getMyEnrolledSlot();
+      if (existing) {
+        alert(`您当前设备已登记了席位【${existing.name}】(${existing.role})！\n每人限报一个角色，不可替报小号。如需改换天赋或坑位，请直接点击原角色进行修改。`);
         return;
       }
 
@@ -711,7 +727,7 @@
       document.getElementById('player-signup-form').reset();
       document.getElementById('input-passcode').value = '';
       document.getElementById('input-passcode').disabled = false;
-      document.getElementById('input-passcode').placeholder = '防止他人篡改的临时口令';
+      document.getElementById('input-passcode').placeholder = '用于后续修改的临时口令';
 
       autoSelectClassForRole(roleCode);
       toggleSignupModal(true);
@@ -819,7 +835,7 @@
 
     async function handlePlayerSignup(e) {
       e.preventDefault();
-      if (isCurrentReadOnly()) {
+      if (isReadOnlyMode) {
         alert('当前团队已封存归档，不允许继续修改！');
         return;
       }
@@ -882,7 +898,8 @@
             gs: gs,
             note: note,
             passcode: passcode,
-            adminToken
+            adminToken,
+            deviceId: localDeviceId // 注入独立设备标识
           })
         });
 
@@ -919,8 +936,7 @@
       const verifyBox = document.getElementById('passcode-verify-box');
       const actionBox = document.getElementById('action-buttons-box');
 
-      // 核心拦截：如果处于只读封存态，隐藏所有修改/移除按钮，仅供查阅
-      if (isCurrentReadOnly()) {
+      if (isReadOnlyMode) {
         badgeEl.innerText = '历史封存';
         badgeEl.className = 'text-[9px] px-1 rounded bg-neutral-800 text-neutral-400 border border-neutral-700/50';
         verifyBox.classList.add('hidden');
@@ -929,8 +945,9 @@
         return;
       }
 
+      const isMyDevice = p.deviceId && p.deviceId === localDeviceId;
       const localPass = mySavedPasscodes[`${currentRaidId}_${slotId}`];
-      const hasDirectAccess = raidState.isLeaderLocal || !!localPass;
+      const hasDirectAccess = raidState.isLeaderLocal || isMyDevice || !!localPass;
 
       if (hasDirectAccess) {
         badgeEl.innerText = raidState.isLeaderLocal ? '团长特权' : '本机已认证';
@@ -1113,13 +1130,12 @@
 
         container.innerHTML = data.list.map(item => {
           const isCurrent = item.id === currentRaidId;
-          const isLockedItem = !!item.is_locked;
           return `
             <div class="p-2.5 rounded bg-neutral-900/70 border ${isCurrent ? 'border-amber-500/60 bg-amber-500/5' : 'border-neutral-800'} hover:border-neutral-600 transition-all flex items-center justify-between gap-2">
               <div onclick="jumpToRaid('${item.id}')" class="flex-1 min-w-0 cursor-pointer">
                 <div class="flex items-center justify-between">
                   <span class="font-bold text-neutral-200 truncate ${isCurrent ? 'text-amber-400' : ''}">
-                    ${item.title}${isLockedItem ? ' 🔒' : ''}
+                    ${item.title}
                   </span>
                   <span class="text-amber-400 font-semibold text-[11px] shrink-0 ml-1.5">${item.enrolled_count}/${item.size}人</span>
                 </div>
@@ -1148,7 +1164,6 @@
         toggleHistory(false);
         return;
       }
-      // 从历史卡片点击跳转时，强制增加 readonly=1 开启只读保护
       window.location.href = `?id=${raidId}&readonly=1`;
     }
 
