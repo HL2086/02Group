@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>魔兽世界 团本线下集结</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 暴雪战网经典深邃海军蓝灰基调 */
+    body {
+      background-color: #0b111e;
+      background-image: radial-gradient(circle at 50% 0%, #17253f 0%, #0b111e 75%);
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 魔兽标准职业色 */
+    .color-WARRIOR { color: #C79C6E; }
+    .color-PALADIN { color: #F58CBA; }
+    .color-HUNTER  { color: #ABD473; }
+    .color-ROGUE   { color: #FFF569; }
+    .color-PRIEST  { color: #FFFFFF; }
+    .color-DK      { color: #C41F3B; }
+    .color-SHAMAN  { color: #0070DE; }
+    .color-MAGE    { color: #69CCF0; }
+    .color-WARLOCK { color: #9482C9; }
+    .color-DRUID   { color: #FF7D0A; }
+
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    /* 暴雪战网质感卡片容器 */
+    .blizz-panel {
+      background: linear-gradient(180deg, #162033 0%, #111927 100%);
+      border: 1px solid #283a58;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    /* 暴雪弹窗质感 */
+    .blizz-modal {
+      background: linear-gradient(180deg, #192438 0%, #111827 100%);
+      border: 1px solid #385078;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.75), 0 0 15px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* 属于自己的那一行：专属亮眼外边框与微光 */
+    .my-slot-highlight {
+      border: 1px solid #f59e0b !important;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.16) 0%, rgba(56, 189, 248, 0.10) 100%) !important;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.25), inset 0 0 6px rgba(245, 158, 11, 0.12);
+    }
+
+    .animated-divider {
+      position: relative;
+      height: 2px;
+      margin: 8px 0;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.55) 50%, rgba(56, 189, 248, 0.08) 100%);
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+    .animated-divider::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, #38bdf8, #ffffff, #38bdf8, transparent);
+      animation: energyFlow 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes energyFlow {
+      0% { left: -50%; }
+      100% { left: 110%; }
+    }
+
+    .buff-badge { transition: all 0.2s ease; }
+    .buff-active {
+      border-color: #f59e0b;
+      color: #fde047;
+      background-color: rgba(245, 158, 11, 0.16);
+      box-shadow: 0 0 6px rgba(250, 204, 21, 0.25);
+    }
+    .buff-inactive {
+      border-color: #26354d;
+      color: #64748b;
+      background-color: rgba(15, 23, 42, 0.6);
+      opacity: 0.65;
+    }
+
+    .leader-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 15px;
+      font-size: 8.5px;
+      font-weight: 600;
+      line-height: 1;
+      border-radius: 2px;
+      color: #86efac;
+      border: 1px solid rgba(74, 222, 128, 0.55);
+      background-color: rgba(34, 197, 94, 0.16);
+      animation: leaderGlow 2.2s ease-in-out infinite;
+      user-select: none;
+    }
+    @keyframes leaderGlow {
+      0%, 100% {
+        border-color: rgba(74, 222, 128, 0.4);
+        background-color: rgba(34, 197, 94, 0.1);
+        box-shadow: 0 0 3px rgba(74, 222, 128, 0.25);
+        color: #86efac;
+      }
+      50% {
+        border-color: rgba(74, 222, 128, 0.95);
+        background-color: rgba(34, 197, 94, 0.28);
+        box-shadow: 0 0 8px rgba(74, 222, 128, 0.65);
+        color: #dcfce7;
+      }
+    }
+
+    .row-grid-container {
+      display: grid;
+      grid-template-columns: 26px 76px 74px 1fr 54px;
+      align-items: center;
+      column-gap: 6px;
+    }
+
+    .chip-radio:checked + label {
+      border-color: #f59e0b;
+      background-color: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      font-weight: 600;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+  </style>
+</head>
+<body class="min-h-screen pb-12 selection:bg-amber-500/30">
+
+  <!-- 顶部 Header 区域（暴雪战网顶栏风格） -->
+  <header class="sticky top-0 z-30 bg-[#0e1626]/95 backdrop-blur-md border-b border-[#263854] px-3 py-2.5 max-w-xl mx-auto shadow-md">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex-1 min-w-0 pr-1">
+        <div class="flex items-center gap-1.5">
+          <span id="sync-indicator" class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" title="云端实时同步中"></span>
+          <span id="display-raid-size" class="text-xs font-mono font-bold text-amber-400 shrink-0">10人</span>
+          <h1 id="display-raid-title" class="text-sm font-bold text-amber-300 tracking-wide truncate drop-shadow">NAXX 开荒首通</h1>
+        </div>
+        <p class="text-[11px] text-slate-300 font-mono mt-0.5">
+          <span id="display-raid-time">周五 19:30</span> 
+          (<span id="display-member-count" class="text-sky-300 font-semibold">0</span>/<span id="display-total-cap">10</span>人)
+        </p>
+        <p id="display-raid-note" class="text-[11px] text-amber-100/90 leading-snug font-mono truncate mt-1"></p>
+      </div>
+
+      <div class="flex flex-col items-end gap-1.5 shrink-0">
+        <div class="flex items-center gap-2 text-[11px]">
+          <button onclick="copyInviteMacro()" class="text-sky-400 hover:text-sky-300 font-medium transition-colors">复制宏</button>
+          <button id="btn-config-trigger" onclick="openRaidConfigModal()" class="text-amber-400 hover:text-amber-300 font-medium transition-colors hidden">开团设置</button>
+          <span id="divider-config" class="text-slate-600 hidden">|</span>
+          <button onclick="handleShare()" class="text-slate-300 hover:text-white transition-colors">分享</button>
+          <button onclick="toggleHistory(true)" class="text-slate-300 hover:text-white transition-colors">历史</button>
+        </div>
+        <div id="buff-grid" class="grid grid-cols-4 gap-1"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 席位总名单 -->
+  <main class="max-w-xl mx-auto px-3 pt-2.5">
+    <div id="roster-container" class="space-y-1.5">
+      <!-- 坦克组 -->
+      <div class="flex items-stretch gap-2 blizz-panel rounded-md p-1.5">
+        <div class="w-8 shrink-0 flex items-center justify-center font-black text-xl text-sky-400 select-none bg-sky-950/50 rounded border border-sky-700/40 shadow-inner">T</div>
+        <div id="tank-slots" class="flex-1 space-y-1"></div>
+      </div>
+
+      <div class="animated-divider"></div>
+
+      <!-- 治疗组 -->
+      <div class="flex items-stretch gap-2 blizz-panel rounded-md p-1.5">
+        <div class="w-8 shrink-0 flex items-center justify-center font-black text-xl text-emerald-400 select-none bg-emerald-950/50 rounded border border-emerald-700/40 shadow-inner">N</div>
+        <div id="healer-slots" class="flex-1 space-y-1"></div>
+      </div>
+
+      <div class="animated-divider"></div>
+
+      <!-- 输出组 -->
+      <div class="flex items-stretch gap-2 blizz-panel rounded-md p-1.5">
+        <div class="w-8 shrink-0 flex items-center justify-center font-black text-lg text-rose-400 select-none bg-rose-950/50 rounded border border-rose-700/40 shadow-inner">DPS</div>
+        <div id="dps-slots" class="flex-1 space-y-1"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 暴雪风格轻量通知弹窗（取代系统白底 alert） -->
+  <div id="blizz-toast-modal" class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="blizz-modal rounded-lg p-4 w-full max-w-[280px] text-center space-y-3.5 transform transition-all">
+      <div class="flex items-center justify-center gap-1.5 text-amber-400 font-bold text-sm tracking-wide">
+        <span>⚔️</span>
+        <span id="blizz-toast-title">系统提示</span>
+      </div>
+      <p id="blizz-toast-msg" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line font-medium">
+        不要重复登记
+      </p>
+      <button onclick="closeBlizzToast()" class="w-full py-1.5 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.98] text-slate-950 font-bold rounded text-xs shadow transition-all">
+        关闭
+      </button>
+    </div>
+  </div>
+
+  <!-- 弹窗 1：开团活动参数设置（仅团长可操作） -->
+  <div id="raid-config-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="blizz-modal w-full max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#2a3c5a] mb-3">
+        <div class="flex items-center gap-1.5">
+          <h3 class="text-sm font-bold text-amber-400">开团活动配置</h3>
+          <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-600/40">团长特权</span>
+        </div>
+        <button onclick="toggleRaidConfigModal(false)" class="text-slate-400 hover:text-white text-lg leading-none px-1">✕</button>
+      </div>
+
+      <form id="raid-config-form" onsubmit="handleSaveRaidConfig(event)" class="space-y-2.5 text-xs pb-16">
+        <div class="flex items-center gap-2">
+          <label class="w-14 shrink-0 text-slate-300 text-right">标题：</label>
+          <input type="text" id="cfg-raid-title" required placeholder="如：NAXX 开荒首通" value="NAXX 开荒首通" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-100 font-medium focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-14 shrink-0 text-slate-300 text-right">人数：</label>
+          <div class="flex-1 flex items-center gap-1.5">
+            <input type="radio" name="raid-size" id="size-10" value="10" class="hidden chip-radio" checked onchange="handleSizeRadioChange(10)">
+            <label for="size-10" class="flex-1 border border-[#2c4060] bg-[#0c1322] py-1 text-center rounded cursor-pointer text-slate-300">10人</label>
+
+            <input type="radio" name="raid-size" id="size-25" value="25" class="hidden chip-radio" onchange="handleSizeRadioChange(25)">
+            <label for="size-25" class="flex-1 border border-[#2c4060] bg-[#0c1322] py-1 text-center rounded cursor-pointer text-slate-300">25人</label>
+
+            <input type="radio" name="raid-size" id="size-custom" value="custom" class="hidden chip-radio" onchange="handleSizeRadioChange('custom')">
+            <label for="size-custom" class="flex-1 border border-[#2c4060] bg-[#0c1322] py-1 text-center rounded cursor-pointer text-slate-300">自定义</label>
+          </div>
+        </div>
+        <div id="row-custom-size" class="flex items-center gap-2 hidden">
+          <span class="w-14 shrink-0"></span>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="input-custom-size" placeholder="输入人数(如: 15)" oninput="this.value=this.value.replace(/\D/g,'')" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-200 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-14 shrink-0 text-slate-300 text-right">T人数：</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="cfg-tank-count" value="2" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')" class="w-14 bg-[#0c1322] border border-[#2c4060] rounded px-1.5 py-1.5 text-center text-slate-100 focus:outline-none focus:border-amber-400">
+          <span class="text-slate-600 px-0.5">;</span>
+          <label class="text-slate-300 shrink-0">治疗人数：</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="cfg-healer-count" value="2" maxlength="2" oninput="this.value=this.value.replace(/\D/g,'')" class="w-14 bg-[#0c1322] border border-[#2c4060] rounded px-1.5 py-1.5 text-center text-slate-100 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-14 shrink-0 text-slate-300 text-right">时间：</label>
+          <input type="text" id="cfg-raid-time" value="周五 19:30" placeholder="如：周六 20:00 开组" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-14 shrink-0 text-slate-300 text-right">备注：</label>
+          <input type="text" id="cfg-raid-note" placeholder="分配方式及打团说明" value="一需多贪，带好合剂药水，守时不鸽" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="pt-3">
+          <button type="submit" id="btn-save-config" class="w-full py-2 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] text-slate-950 font-bold rounded text-xs shadow transition-all">
+            保存开团配置
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 弹窗 2：角色席位登记 / 修改 -->
+  <div id="player-signup-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="blizz-modal w-full max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#2a3c5a] mb-3">
+        <div class="flex items-center gap-1.5">
+          <h3 id="signup-modal-title" class="text-sm font-bold text-amber-400">席位登记</h3>
+          <span id="signup-modal-role-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-sky-950 border border-sky-700/50 text-sky-300 font-mono">T</span>
+        </div>
+        <button onclick="toggleSignupModal(false)" class="text-slate-400 hover:text-white text-lg leading-none px-1">✕</button>
+      </div>
+
+      <form id="player-signup-form" onsubmit="handlePlayerSignup(event)" class="space-y-2.5 text-xs pb-16">
+        <div class="flex items-center gap-2">
+          <label class="w-12 shrink-0 text-slate-300 text-right">角色名：</label>
+          <input type="text" id="input-player-name" required class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-12 shrink-0 text-slate-300 text-right">职业：</label>
+          <div id="class-picker" class="flex-1 grid grid-cols-10 gap-0.5"></div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-12 shrink-0 text-slate-300 text-right">天赋：</label>
+          <div id="spec-picker" class="flex-1 flex items-center gap-1.5"></div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-12 shrink-0 text-slate-300 text-right">装等：</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" id="input-gs" required maxlength="5" placeholder="如 4200" oninput="this.value=this.value.replace(/\D/g,'')" class="w-16 bg-[#0c1322] border border-[#2c4060] rounded px-2 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400">
+          
+          <label class="text-slate-300 shrink-0 ml-1">备注：</label>
+          <input type="text" id="input-note" placeholder="可选，如可切副修" maxlength="16" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400">
+        </div>
+
+        <div class="flex items-center gap-2">
+          <label class="w-12 shrink-0 text-slate-300 text-right">口令：</label>
+          <input type="text" id="input-passcode" required maxlength="50" placeholder="用于后续修改的临时口令" class="flex-1 bg-[#0c1322] border border-[#2c4060] rounded px-2.5 py-1.5 text-slate-100 focus:outline-none focus:border-amber-400 font-mono">
+        </div>
+
+        <div class="pt-3">
+          <button type="submit" id="btn-submit" class="w-full py-2 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] text-slate-950 font-bold rounded text-xs shadow transition-all">
+            确认登记该席位
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 轻量行操作弹窗 -->
+  <div id="player-action-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="blizz-modal rounded-lg p-4 w-full max-w-xs space-y-3 text-center">
+      <div class="text-xs text-slate-200 font-mono pb-2 border-b border-[#2a3c5a] flex items-center justify-between">
+        <span>席位管理: <strong id="target-player-name" class="text-amber-400"></strong></span>
+        <span id="target-auth-badge" class="text-[9px] px-1.5 py-0.2 rounded"></span>
+      </div>
+
+      <div id="passcode-verify-box" class="text-left space-y-1.5 hidden bg-[#0c1322] p-2.5 rounded border border-[#2c4060]">
+        <label class="block text-[11px] text-slate-300">请输入该角色的专属口令：</label>
+        <div class="flex items-center gap-1.5">
+          <input type="password" id="input-verify-passcode" maxlength="50" placeholder="输入口令" class="flex-1 bg-[#141f35] border border-[#385078] rounded px-2 py-1 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-400">
+          <button onclick="verifyAndUnlock()" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded">验证</button>
+        </div>
+        <p id="verify-error-msg" class="text-[10px] text-rose-400 hidden">口令错误，无法操作！</p>
+      </div>
+
+      <div id="action-buttons-box" class="grid grid-cols-2 gap-2 pt-0.5">
+        <button onclick="editCurrentPlayer()" class="py-2 bg-[#1e2d4a] hover:bg-[#273a5e] border border-[#3b537d] text-xs font-semibold text-sky-200 rounded active:scale-[0.99] transition-all">修改信息</button>
+        <button onclick="removeTargetPlayer()" class="py-2 bg-rose-950/60 hover:bg-rose-900/70 border border-rose-700/60 text-xs font-semibold text-rose-300 rounded active:scale-[0.99] transition-all">移除登记</button>
+      </div>
+      <button onclick="togglePlayerActionModal(false)" class="w-full py-1 text-[11px] text-slate-400 hover:text-slate-200">关闭</button>
+    </div>
+  </div>
+
+  <!-- 历史组团记录弹窗 -->
+  <div id="history-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="blizz-modal rounded-lg p-4 w-full max-w-sm space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-[#2a3c5a]">
+        <div class="flex items-center gap-1.5">
+          <h4 class="text-xs font-bold text-amber-400 select-none">历史组团记录</h4>
+          <span id="super-admin-tag" class="text-[9px] px-1 rounded bg-amber-950 text-amber-400 border border-amber-700/50 hidden">管理模式</span>
+        </div>
+        <button onclick="toggleHistory(false)" class="text-slate-400 hover:text-white text-sm">✕</button>
+      </div>
+
+      <div id="history-list-box" class="space-y-2 text-xs font-mono max-h-72 overflow-y-auto pr-0.5">
+        <div class="text-center py-6 text-slate-400 text-xs">正在查询云端历史战报...</div>
+      </div>
+
+      <div class="pt-2 border-t border-[#2a3c5a] flex items-center justify-between text-[10px] text-slate-400">
+        <span onclick="triggerAdminAuthPrompt()" class="cursor-pointer hover:text-slate-200">🛡️ 管理员入口</span>
+        <button onclick="window.location.href = window.location.pathname" class="text-sky-400 hover:text-sky-300 font-medium">➕ 发起全新开团</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CLASSES = {
+      WARRIOR: { code: 'ZS', name: '战士', specs: [{ name: '防护', role: 'T' }, { name: '狂暴', role: 'D' }, { name: '武器', role: 'D' }] },
+      PALADIN: { code: 'QS', name: '圣骑', specs: [{ name: '防护', role: 'T' }, { name: '神圣', role: 'N' }, { name: '惩戒', role: 'D' }] },
+      DK:      { code: 'DK', name: '死骑', specs: [{ name: '鲜血', role: 'T' }, { name: '邪恶', role: 'D' }, { name: '冰霜', role: 'D' }] },
+      DRUID:   { code: 'XD', name: '小德', specs: [{ name: '熊德', role: 'T' }, { name: '恢复', role: 'N' }, { name: '平衡', role: 'D' }, { name: '猫德', role: 'D' }] },
+      PRIEST:  { code: 'MS', name: '牧师', specs: [{ name: '戒律', role: 'N' }, { name: '神圣', role: 'N' }, { name: '暗影', role: 'D' }] },
+      SHAMAN:  { code: 'SM', name: '萨满', specs: [{ name: '恢复', role: 'N' }, { name: '元素', role: 'D' }, { name: '增强', role: 'D' }] },
+      MAGE:    { code: 'FS', name: '法师', specs: [{ name: '火法', role: 'D' }, { name: '奥术', role: 'D' }, { name: '冰霜', role: 'D' }] },
+      WARLOCK: { code: 'SS', name: '术士', specs: [{ name: '痛苦', role: 'D' }, { name: '恶魔', role: 'D' }, { name: '毁灭', role: 'D' }] },
+      ROGUE:   { code: 'DZ', name: '盗贼', specs: [{ name: '战斗', role: 'D' }, { name: '刺杀', role: 'D' }, { name: '敏锐', role: 'D' }] },
+      HUNTER:  { code: 'LR', name: '猎人', specs: [{ name: '射击', role: 'D' }, { name: '生存', role: 'D' }, { name: '野兽', role: 'D' }] }
+    };
+
+    const BUFFS = [
+      { id: 'kings', name: '王者', classes: ['PALADIN'] },
+      { id: 'mark',  name: '爪子', classes: ['DRUID'] },
+      { id: 'fort',  name: '耐力', classes: ['PRIEST'] },
+      { id: 'int',   name: '智力', classes: ['MAGE'] },
+      { id: 'blood', name: '嗜血', classes: ['SHAMAN'] },
+      { id: 'armor', name: '破甲', classes: ['WARRIOR', 'ROGUE'] },
+      { id: 'spirit',name: '精神', classes: ['PRIEST'] },
+      { id: 'sp',    name: '法易', classes: ['WARLOCK', 'MAGE'] }
+    ];
+
+    let currentRaidId = '';
+    let raidState = {
+      title: 'NAXX 开荒首通',
+      size: 10,
+      tankCap: 2,
+      healerCap: 2,
+      time: '周五 19:30',
+      note: '一需多贪，带好合剂药水，守时不鸽。',
+      leaderName: '',
+      isLeaderLocal: false
+    };
+
+    let rosterMap = {};
+    let currentEditingSlotId = null;
+    let isEditMode = false;
+    let selectedClass = 'WARRIOR';
+    let targetSlotRole = 'T';
+    let selectedMainSpec = null;
+    let selectedOffSpec = null;
+
+    let isReadOnlyMode = false;
+    let pollingTimer = null;
+
+    let localDeviceId = localStorage.getItem('wow_device_id');
+    if (!localDeviceId) {
+      localDeviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+      localStorage.setItem('wow_device_id', localDeviceId);
+    }
+
+    let mySavedPasscodes = JSON.parse(localStorage.getItem('wow_raid_passcodes') || '{}');
+    let superAdminKey = localStorage.getItem('wow_super_admin_key') || '';
+
+    // 统一暴雪战网风格通知弹窗（取代系统丑陋 alert）
+    function showBlizzToast(msg, title = '系统提示') {
+      document.getElementById('blizz-toast-title').innerText = title;
+      document.getElementById('blizz-toast-msg').innerText = msg;
+      document.getElementById('blizz-toast-modal').classList.remove('hidden');
+    }
+    function closeBlizzToast() {
+      document.getElementById('blizz-toast-modal').classList.add('hidden');
+    }
+
+    function savePasscodeLocally(slotKey, code) {
+      mySavedPasscodes[slotKey] = code;
+      localStorage.setItem('wow_raid_passcodes', JSON.stringify(mySavedPasscodes));
+    }
+
+    async function init() {
+      renderClassPicker();
+      initKeyboardShield();
+
+      const params = new URLSearchParams(window.location.search);
+      currentRaidId = params.get('id');
+      isReadOnlyMode = params.get('readonly') === '1';
+
+      if (!currentRaidId) {
+        currentRaidId = Math.random().toString(36).substring(2, 8);
+        window.history.replaceState({}, '', `?id=${currentRaidId}`);
+        const adminToken = 'adm_' + Math.random().toString(36).substring(2, 12);
+        localStorage.setItem(`admin_token_${currentRaidId}`, adminToken);
+        raidState.isLeaderLocal = true;
+        updateView();
+      } else {
+        const localAdmin = localStorage.getItem(`admin_token_${currentRaidId}`);
+        if (localAdmin) raidState.isLeaderLocal = true;
+        updateView();
+        await fetchCloudData();
+      }
+
+      startPolling();
+    }
+
+    function startPolling() {
+      if (pollingTimer) clearInterval(pollingTimer);
+      if (isReadOnlyMode) return;
+      pollingTimer = setInterval(fetchCloudData, 4000);
+    }
+
+    async function fetchCloudData() {
+      const syncDot = document.getElementById('sync-indicator');
+      try {
+        const res = await fetch(`/api/raid?id=${currentRaidId}`);
+        if (res.status === 404) return;
+
+        if (!res.ok) {
+          if (syncDot) syncDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0';
+          return;
+        }
+
+        const data = await res.json();
+        if (data.success && data.raid) {
+          raidState.title = data.raid.title || raidState.title;
+          raidState.size = data.raid.size || 10;
+          raidState.tankCap = data.raid.tankCap ?? 2;
+          raidState.healerCap = data.raid.healerCap ?? 2;
+          raidState.time = data.raid.time || '周五 19:30';
+          raidState.note = data.raid.note || '';
+          raidState.leaderName = data.raid.leaderName || '';
+          rosterMap = data.rosterMap || {};
+
+          if (data.raid.createdAt) {
+            const createTime = new Date(data.raid.createdAt).getTime();
+            if (Date.now() - createTime > 48 * 3600 * 1000) {
+              isReadOnlyMode = true;
+            }
+          }
+
+          if (syncDot) {
+            if (isReadOnlyMode) {
+              syncDot.className = 'inline-block w-2 h-2 rounded-full bg-slate-500 shrink-0';
+              syncDot.title = '历史封存，已锁定';
+            } else {
+              syncDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0';
+              syncDot.title = '云端实时同步中';
+            }
+          }
+
+          updateView();
+        }
+      } catch (err) {
+        if (syncDot) syncDot.className = 'inline-block w-2 h-2 rounded-full bg-rose-500 shrink-0';
+      }
+    }
+
+    function initKeyboardShield() {
+      document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('focus', function() {
+          setTimeout(() => {
+            this.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 300);
+        });
+      });
+    }
+
+    function handleSizeRadioChange(val) {
+      const isCustom = val === 'custom';
+      document.getElementById('row-custom-size').classList.toggle('hidden', !isCustom);
+      const tankInput = document.getElementById('cfg-tank-count');
+      const healerInput = document.getElementById('cfg-healer-count');
+      if (val === 10) { tankInput.value = '2'; healerInput.value = '2'; }
+      else if (val === 25) { tankInput.value = '2'; healerInput.value = '5'; }
+    }
+
+    function getValidRosterList() {
+      return Object.values(rosterMap).filter(Boolean);
+    }
+
+    function getMyEnrolledSlot() {
+      for (const [slotId, p] of Object.entries(rosterMap)) {
+        if (p && p.deviceId === localDeviceId) {
+          return { slotId, ...p };
+        }
+      }
+      return null;
+    }
+
+    function updateView() {
+      const currentList = getValidRosterList();
+      const locked = isReadOnlyMode;
+
+      document.getElementById('display-raid-size').innerText = `${raidState.size}人`;
+      
+      const titleEl = document.getElementById('display-raid-title');
+      titleEl.innerHTML = `${raidState.title}${locked ? ' <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 border border-slate-600 text-slate-300 font-normal">🔒已封存</span>' : ''}`;
+      
+      document.getElementById('display-raid-time').innerText = raidState.time;
+      document.getElementById('display-member-count').innerText = currentList.length;
+      document.getElementById('display-total-cap').innerText = raidState.size;
+      document.getElementById('display-raid-note').innerText = raidState.note || '暂无团队备注';
+      document.getElementById('display-raid-note').title = raidState.note || '';
+
+      const cfgBtn = document.getElementById('btn-config-trigger');
+      const dividerEl = document.getElementById('divider-config');
+      if (raidState.isLeaderLocal && !locked) {
+        cfgBtn.classList.remove('hidden');
+        dividerEl.classList.remove('hidden');
+      } else {
+        cfgBtn.classList.add('hidden');
+        dividerEl.classList.add('hidden');
+      }
+
+      const dpsCap = Math.max(0, raidState.size - raidState.tankCap - raidState.healerCap);
+
+      let tHtml = '';
+      for (let i = 0; i < raidState.tankCap; i++) {
+        const slotId = `T-${i}`;
+        tHtml += renderSlotRow(rosterMap[slotId], 'T', slotId);
+      }
+      document.getElementById('tank-slots').innerHTML = tHtml;
+
+      let nHtml = '';
+      for (let i = 0; i < raidState.healerCap; i++) {
+        const slotId = `N-${i}`;
+        nHtml += renderSlotRow(rosterMap[slotId], 'N', slotId);
+      }
+      document.getElementById('healer-slots').innerHTML = nHtml;
+
+      let dHtml = '';
+      for (let i = 0; i < dpsCap; i++) {
+        const slotId = `D-${i}`;
+        dHtml += renderSlotRow(rosterMap[slotId], 'D', slotId);
+      }
+      document.getElementById('dps-slots').innerHTML = dHtml;
+
+      updateBuffs();
+    }
+
+    function renderSlotRow(player, roleCode, slotId) {
+      const locked = isReadOnlyMode;
+      if (player) {
+        const isLeader = player.name === raidState.leaderName;
+        const isMine = player.deviceId === localDeviceId;
+        // 属于自己的那一行：加上漂亮的金/冰蓝流光高亮外边框
+        const rowClass = isMine 
+          ? 'my-slot-highlight' 
+          : 'border border-transparent hover:bg-[#1e2c46]/60 active:bg-[#253655]';
+
+        return `
+          <div onclick="openPlayerAction('${slotId}')" class="row-grid-container py-1.5 px-2 text-xs rounded cursor-pointer transition-all select-none ${rowClass}">
+            <div class="flex items-center justify-start overflow-hidden">
+              ${isLeader ? '<span class="leader-badge">团长</span>' : (isMine ? '<span class="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/20 border border-amber-500/60 text-amber-300 font-bold">我</span>' : '')}
+            </div>
+            <div class="font-mono text-[11px] truncate text-left">
+              <span class="font-semibold color-${player.classKey}">${player.mainSpec}</span>${player.offSpec ? `<span class="text-slate-400">/${player.offSpec}</span>` : ''}
+            </div>
+            <div class="font-semibold text-white truncate text-left" title="${player.name}">
+              ${player.name}
+            </div>
+            <div class="text-[10px] text-slate-300 font-mono truncate text-left" title="${player.note || ''}">
+              ${player.note ? `(${player.note})` : ''}
+            </div>
+            <div class="text-right font-mono text-amber-400 font-bold text-[11px]">
+              ${player.gs}<span class="text-[9px] text-amber-400/80 ml-0.5">GS</span>
+            </div>
+          </div>
+        `;
+      } else {
+        if (locked) {
+          return `
+            <div class="row-grid-container py-1 px-2 text-xs rounded border border-[#1e2c45] bg-[#0e1525]/40 text-slate-600 select-none cursor-default">
+              <div class="text-slate-700 font-mono text-[10px]">--</div>
+              <div></div><div></div><div></div>
+              <div class="text-right font-mono text-[10px] text-slate-600">空席</div>
+            </div>
+          `;
+        }
+
+        return `
+          <div onclick="openSignupForRole('${roleCode}', '${slotId}')" class="row-grid-container py-1.5 px-2 text-xs rounded border border-dashed border-[#2c4060] bg-[#0d1424]/50 hover:border-amber-400/70 hover:bg-[#17233a] active:scale-[0.99] cursor-pointer text-slate-400 transition-all select-none">
+            <div class="text-slate-600 font-mono text-[10px]">--</div>
+            <div></div><div></div><div></div>
+            <div class="text-right font-mono text-[10px] text-amber-400 font-medium">[登记]</div>
+          </div>
+        `;
+      }
+    }
+
+    function updateBuffs() {
+      const currentList = getValidRosterList();
+      const presentClasses = new Set(currentList.map(p => p.classKey));
+      const buffHtml = BUFFS.map(buff => {
+        const isCovered = buff.classes.some(c => presentClasses.has(c));
+        return `<div class="buff-badge text-[10px] px-1 py-0.5 rounded border text-center font-medium ${isCovered ? 'buff-active' : 'buff-inactive'}">${buff.name}</div>`;
+      }).join('');
+      document.getElementById('buff-grid').innerHTML = buffHtml;
+    }
+
+    function openRaidConfigModal() {
+      if (!raidState.isLeaderLocal) {
+        showBlizzToast('仅团长有权限修改团队活动参数！');
+        return;
+      }
+      document.getElementById('cfg-raid-title').value = raidState.title;
+      document.getElementById('cfg-tank-count').value = raidState.tankCap;
+      document.getElementById('cfg-healer-count').value = raidState.healerCap;
+      document.getElementById('cfg-raid-time').value = raidState.time;
+      document.getElementById('cfg-raid-note').value = raidState.note;
+      toggleRaidConfigModal(true);
+    }
+
+    function toggleRaidConfigModal(show) {
+      document.getElementById('raid-config-modal').classList.toggle('hidden', !show);
+    }
+
+    async function syncSaveConfig() {
+      const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
+      await fetch('/api/raid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_config',
+          raidId: currentRaidId,
+          title: raidState.title,
+          size: raidState.size,
+          tankCap: raidState.tankCap,
+          healerCap: raidState.healerCap,
+          time: raidState.time,
+          note: raidState.note,
+          adminToken
+        })
+      });
+    }
+
+    async function handleSaveRaidConfig(e) {
+      e.preventDefault();
+      const targetSizeChoice = document.querySelector('input[name="raid-size"]:checked').value;
+      const targetTotalSize = targetSizeChoice === 'custom' ? parseInt(document.getElementById('input-custom-size').value, 10) || 10 : parseInt(targetSizeChoice, 10);
+      const targetTankCap = parseInt(document.getElementById('cfg-tank-count').value, 10) || 2;
+      const targetHealerCap = parseInt(document.getElementById('cfg-healer-count').value, 10) || 2;
+      const targetDpsCap = Math.max(0, targetTotalSize - targetTankCap - targetHealerCap);
+
+      let currentTankCount = 0, currentHealerCount = 0, currentDpsCount = 0;
+      for (let [slotId, p] of Object.entries(rosterMap)) {
+        if (!p) continue;
+        if (slotId.startsWith('T-')) currentTankCount++;
+        else if (slotId.startsWith('N-')) currentHealerCount++;
+        else if (slotId.startsWith('D-')) currentDpsCount++;
+      }
+
+      if (targetTankCap < currentTankCount) {
+        showBlizzToast(`当前已有 ${currentTankCount} 名坦克登记，无法将坦克席位缩减为 ${targetTankCap}！请先移除多余人员。`);
+        return;
+      }
+      if (targetHealerCap < currentHealerCount) {
+        showBlizzToast(`当前已有 ${currentHealerCount} 名治疗登记，无法将治疗席位缩减为 ${targetHealerCap}！请先移除多余人员。`);
+        return;
+      }
+      if (targetDpsCap < currentDpsCount) {
+        showBlizzToast(`当前已有 ${currentDpsCount} 名输出登记，新设置仅允许 ${targetDpsCap} 名输出！请先移除多余人员。`);
+        return;
+      }
+
+      raidState.title = document.getElementById('cfg-raid-title').value.trim() || '团队活动';
+      raidState.size = targetTotalSize;
+      raidState.tankCap = targetTankCap;
+      raidState.healerCap = targetHealerCap;
+      raidState.time = document.getElementById('cfg-raid-time').value.trim() || '待定';
+      raidState.note = document.getElementById('cfg-raid-note').value.trim();
+
+      const btn = document.getElementById('btn-save-config');
+      btn.innerText = '正在保存至云端...';
+      btn.disabled = true;
+
+      await syncSaveConfig();
+
+      btn.innerText = '保存开团配置';
+      btn.disabled = false;
+      updateView();
+      toggleRaidConfigModal(false);
+    }
+
+    function openSignupForRole(roleCode, slotId) {
+      if (isReadOnlyMode) {
+        showBlizzToast('当前团队已封存归档，不允许继续登记！');
+        return;
+      }
+
+      // 简洁暴雪风格弹窗提示：不要重复登记
+      const existing = getMyEnrolledSlot();
+      if (existing) {
+        showBlizzToast('不要重复登记');
+        return;
+      }
+
+      isEditMode = false;
+      currentEditingSlotId = slotId;
+      targetSlotRole = roleCode;
+      document.getElementById('signup-modal-title').innerText = '席位登记';
+      document.getElementById('signup-modal-role-badge').innerText = roleCode === 'T' ? '坦克' : (roleCode === 'N' ? '治疗' : '输出');
+      document.getElementById('btn-submit').innerText = '确认登记该席位';
+      document.getElementById('player-signup-form').reset();
+      document.getElementById('input-passcode').value = '';
+      document.getElementById('input-passcode').disabled = false;
+      document.getElementById('input-passcode').placeholder = '用于后续修改的临时口令';
+
+      autoSelectClassForRole(roleCode);
+      toggleSignupModal(true);
+    }
+
+    function toggleSignupModal(show) {
+      document.getElementById('player-signup-modal').classList.toggle('hidden', !show);
+    }
+
+    function autoSelectClassForRole(role) {
+      if (role === 'T') selectClass('WARRIOR');
+      else if (role === 'N') selectClass('PRIEST');
+      else selectClass('MAGE');
+    }
+
+    function renderClassPicker() {
+      const container = document.getElementById('class-picker');
+      container.innerHTML = Object.entries(CLASSES).map(([key, item]) => {
+        const isSelected = key === selectedClass;
+        return `
+          <button type="button" onclick="selectClass('${key}')" 
+            class="py-1 text-[11px] rounded-[3px] border transition-all text-center leading-none ${
+              isSelected 
+                ? 'border-amber-400 bg-amber-500/20 color-' + key + ' font-bold shadow-[0_0_6px_rgba(245,158,11,0.3)]' 
+                : 'border-[#2c4060] bg-[#0c1322] text-slate-300 hover:border-slate-500'
+            }">
+            ${item.name}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectClass(key) {
+      selectedClass = key;
+      renderClassPicker();
+      const cls = CLASSES[selectedClass];
+      const matchSpec = cls.specs.find(s => s.role === targetSlotRole) || cls.specs[0];
+      selectedMainSpec = matchSpec;
+      selectedOffSpec = null;
+      renderSpecButtons();
+    }
+
+    function renderSpecButtons() {
+      const cls = CLASSES[selectedClass];
+      const container = document.getElementById('spec-picker');
+      container.innerHTML = cls.specs.map(s => {
+        const isMain = selectedMainSpec && selectedMainSpec.name === s.name;
+        const isOff = selectedOffSpec && selectedOffSpec.name === s.name;
+
+        let styleClass = 'border-[#2c4060] bg-[#0c1322] text-slate-300 hover:border-slate-500';
+        let badge = '';
+
+        if (isMain) {
+          styleClass = 'border-amber-400 bg-amber-500/20 text-amber-300 font-bold shadow-[0_0_8px_rgba(251,191,36,0.25)]';
+          badge = `<span class="text-[9px] bg-amber-400 text-slate-950 px-0.5 rounded-sm ml-0.5 leading-none">主</span>`;
+        } else if (isOff) {
+          styleClass = 'border-sky-400/80 bg-sky-500/20 text-sky-200 font-semibold';
+          badge = `<span class="text-[9px] bg-sky-400 text-slate-950 px-0.5 rounded-sm ml-0.5 leading-none">副</span>`;
+        }
+
+        return `
+          <button type="button" onclick="handleSpecClick('${s.name}')" 
+            class="flex-1 py-1 px-1 rounded text-xs border transition-all text-center flex items-center justify-center gap-0.5 ${styleClass}">
+            <span>${s.name}${badge}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function handleSpecClick(specName) {
+      const cls = CLASSES[selectedClass];
+      const clickedSpec = cls.specs.find(s => s.name === specName);
+      if (!clickedSpec) return;
+
+      if (selectedMainSpec && selectedMainSpec.name === specName) {
+        if (selectedOffSpec) { selectedMainSpec = selectedOffSpec; selectedOffSpec = null; }
+        else { selectedMainSpec = null; }
+      } else if (selectedOffSpec && selectedOffSpec.name === specName) {
+        selectedOffSpec = null;
+      } else {
+        if (!selectedMainSpec) selectedMainSpec = clickedSpec;
+        else if (!selectedOffSpec) selectedOffSpec = clickedSpec;
+        else selectedOffSpec = clickedSpec;
+      }
+
+      if (selectedMainSpec) {
+        const roleLabel = selectedMainSpec.role === 'T' ? '坦克' : (selectedMainSpec.role === 'N' ? '治疗' : '输出');
+        document.getElementById('signup-modal-role-badge').innerText = roleLabel;
+      }
+      renderSpecButtons();
+    }
+
+    function findFirstAvailableSlot(roleCode) {
+      let maxCap = 0;
+      if (roleCode === 'T') maxCap = raidState.tankCap;
+      else if (roleCode === 'N') maxCap = raidState.healerCap;
+      else if (roleCode === 'D') maxCap = Math.max(0, raidState.size - raidState.tankCap - raidState.healerCap);
+
+      for (let i = 0; i < maxCap; i++) {
+        const slotId = `${roleCode}-${i}`;
+        if (!rosterMap[slotId] || (isEditMode && slotId === currentEditingSlotId)) return slotId;
+      }
+      return null;
+    }
+
+    async function handlePlayerSignup(e) {
+      e.preventDefault();
+      if (isReadOnlyMode) {
+        showBlizzToast('当前团队已封存归档，不允许继续修改！');
+        return;
+      }
+
+      const playerName = document.getElementById('input-player-name').value.trim();
+      const gs = parseInt(document.getElementById('input-gs').value, 10) || 0;
+      const note = document.getElementById('input-note').value.trim();
+
+      if (!playerName) return;
+      if (!selectedMainSpec) {
+        showBlizzToast('请至少点击选择一个主修天赋！');
+        return;
+      }
+
+      const actualRole = selectedMainSpec.role;
+      let finalSlotId = currentEditingSlotId;
+      let oldSlotId = isEditMode ? currentEditingSlotId : null;
+
+      if (!currentEditingSlotId.startsWith(`${actualRole}-`)) {
+        const matchedSlot = findFirstAvailableSlot(actualRole);
+        if (!matchedSlot) {
+          const roleLabel = actualRole === 'T' ? '坦克(T)' : (actualRole === 'N' ? '治疗(N)' : '输出(DPS)');
+          showBlizzToast(`所选天赋属于【${roleLabel}】，目前该分组已报满！`);
+          return;
+        }
+        finalSlotId = matchedSlot;
+      }
+
+      let passcode = '';
+      if (isEditMode) {
+        passcode = mySavedPasscodes[`${currentRaidId}_${currentEditingSlotId}`] || '';
+      } else {
+        passcode = document.getElementById('input-passcode').value.trim();
+        if (!passcode) {
+          showBlizzToast('请设置一个临时口令！');
+          return;
+        }
+      }
+
+      const submitBtn = document.getElementById('btn-submit');
+      submitBtn.innerText = '正在提交云端...';
+      submitBtn.disabled = true;
+
+      const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
+
+      try {
+        const res = await fetch('/api/raid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'signup',
+            raidId: currentRaidId,
+            slotId: finalSlotId,
+            oldSlotId: oldSlotId,
+            name: playerName,
+            classKey: selectedClass,
+            mainSpec: selectedMainSpec.name,
+            offSpec: selectedOffSpec ? selectedOffSpec.name : '',
+            role: actualRole,
+            gs: gs,
+            note: note,
+            passcode: passcode,
+            adminToken,
+            deviceId: localDeviceId
+          })
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          showBlizzToast(result.error || '提交失败');
+          submitBtn.innerText = '确认登记该席位';
+          submitBtn.disabled = false;
+          return;
+        }
+
+        savePasscodeLocally(`${currentRaidId}_${finalSlotId}`, passcode);
+        await fetchCloudData();
+        toggleSignupModal(false);
+      } catch (err) {
+        showBlizzToast('网络请求失败，请检查连接');
+      } finally {
+        submitBtn.innerText = '确认登记该席位';
+        submitBtn.disabled = false;
+      }
+    }
+
+    let activeActionSlotId = null;
+    function openPlayerAction(slotId) {
+      activeActionSlotId = slotId;
+      const p = rosterMap[slotId];
+      if (!p) return;
+
+      document.getElementById('target-player-name').innerText = p.name;
+      document.getElementById('verify-error-msg').classList.add('hidden');
+      document.getElementById('input-verify-passcode').value = '';
+
+      const badgeEl = document.getElementById('target-auth-badge');
+      const verifyBox = document.getElementById('passcode-verify-box');
+      const actionBox = document.getElementById('action-buttons-box');
+
+      if (isReadOnlyMode) {
+        badgeEl.innerText = '历史封存';
+        badgeEl.className = 'text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-600/50';
+        verifyBox.classList.add('hidden');
+        actionBox.classList.add('hidden');
+        togglePlayerActionModal(true);
+        return;
+      }
+
+      const isMyDevice = p.deviceId && p.deviceId === localDeviceId;
+      const localPass = mySavedPasscodes[`${currentRaidId}_${slotId}`];
+      const hasDirectAccess = raidState.isLeaderLocal || isMyDevice || !!localPass;
+
+      if (hasDirectAccess) {
+        badgeEl.innerText = raidState.isLeaderLocal ? '团长特权' : '本机已认证';
+        badgeEl.className = 'text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-600/40';
+        verifyBox.classList.add('hidden');
+        actionBox.classList.remove('hidden');
+      } else {
+        badgeEl.innerText = '需口令认领';
+        badgeEl.className = 'text-[9px] px-1.5 py-0.2 rounded bg-amber-950/80 text-amber-300 border border-amber-600/40';
+        verifyBox.classList.remove('hidden');
+        actionBox.classList.add('hidden');
+      }
+
+      togglePlayerActionModal(true);
+    }
+
+    function togglePlayerActionModal(show) {
+      document.getElementById('player-action-modal').classList.toggle('hidden', !show);
+    }
+
+    async function verifyAndUnlock() {
+      const inputCode = document.getElementById('input-verify-passcode').value.trim();
+      if (!inputCode) return;
+
+      const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
+
+      try {
+        const res = await fetch('/api/raid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'verify_passcode',
+            raidId: currentRaidId,
+            slotId: activeActionSlotId,
+            passcode: inputCode,
+            adminToken
+          })
+        });
+
+        const result = await res.json();
+        if (res.ok && result.success) {
+          savePasscodeLocally(`${currentRaidId}_${activeActionSlotId}`, inputCode);
+          document.getElementById('verify-error-msg').classList.add('hidden');
+          document.getElementById('passcode-verify-box').classList.add('hidden');
+          document.getElementById('action-buttons-box').classList.remove('hidden');
+          document.getElementById('target-auth-badge').innerText = '口令已核验';
+          document.getElementById('target-auth-badge').className = 'text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-600/40';
+        } else {
+          document.getElementById('verify-error-msg').classList.remove('hidden');
+        }
+      } catch (err) {
+        showBlizzToast('验证请求失败，请稍后重试');
+      }
+    }
+
+    function editCurrentPlayer() {
+      togglePlayerActionModal(false);
+      const p = rosterMap[activeActionSlotId];
+      if (!p) return;
+
+      isEditMode = true;
+      currentEditingSlotId = activeActionSlotId;
+      targetSlotRole = p.role;
+
+      document.getElementById('signup-modal-title').innerText = '修改登记信息';
+      document.getElementById('signup-modal-role-badge').innerText = p.role === 'T' ? '坦克' : (p.role === 'N' ? '治疗' : '输出');
+      document.getElementById('btn-submit').innerText = '保存修改';
+      document.getElementById('input-player-name').value = p.name;
+      document.getElementById('input-gs').value = p.gs;
+      document.getElementById('input-note').value = p.note || '';
+      document.getElementById('input-passcode').value = '********';
+      document.getElementById('input-passcode').disabled = true;
+
+      selectedClass = p.classKey;
+      renderClassPicker();
+
+      const cls = CLASSES[selectedClass];
+      selectedMainSpec = cls.specs.find(s => s.name === p.mainSpec) || null;
+      selectedOffSpec = cls.specs.find(s => s.name === p.offSpec) || null;
+      renderSpecButtons();
+
+      toggleSignupModal(true);
+    }
+
+    async function removeTargetPlayer() {
+      const p = rosterMap[activeActionSlotId];
+      if (!p) return;
+
+      if (confirm(`确定将玩家【${p.name}】从该席位移除登记吗？`)) {
+        const passcode = mySavedPasscodes[`${currentRaidId}_${activeActionSlotId}`] || '';
+        const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
+
+        try {
+          const res = await fetch('/api/raid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'remove_signup',
+              raidId: currentRaidId,
+              slotId: activeActionSlotId,
+              passcode,
+              adminToken
+            })
+          });
+
+          const result = await res.json();
+          if (!res.ok) {
+            showBlizzToast(result.error || '移除失败');
+            return;
+          }
+
+          delete mySavedPasscodes[`${currentRaidId}_${activeActionSlotId}`];
+          localStorage.setItem('wow_raid_passcodes', JSON.stringify(mySavedPasscodes));
+          await fetchCloudData();
+          togglePlayerActionModal(false);
+        } catch (err) {
+          showBlizzToast('网络异常，请重试');
+        }
+      }
+    }
+
+    function copyInviteMacro() {
+      const validPlayers = getValidRosterList();
+      if (validPlayers.length === 0) {
+        showBlizzToast('当前团队尚无成员可组！');
+        return;
+      }
+
+      if (validPlayers.length <= 12) {
+        const macroText = validPlayers.map(p => `/inv ${p.name}`).join('\n');
+        navigator.clipboard.writeText(macroText).then(() => {
+          showBlizzToast(`已成功复制全团 ${validPlayers.length} 人的组人宏！\n\n${macroText}`, '复制成功');
+        }).catch(() => { showBlizzToast(macroText, '组人宏'); });
+      } else {
+        const group1 = validPlayers.slice(0, 12).map(p => `/inv ${p.name}`).join('\n');
+        const group2 = validPlayers.slice(12).map(p => `/inv ${p.name}`).join('\n');
+        const combinedText = `--- 【宏1 (前12人)】 ---\n${group1}\n\n--- 【宏2 (其余人员)】 ---\n${group2}`;
+        navigator.clipboard.writeText(combinedText).then(() => {
+          showBlizzToast(`已自动切分为两组宏并复制：\n\n${combinedText}`, '复制成功');
+        }).catch(() => { showBlizzToast(combinedText, '组人宏'); });
+      }
+    }
+
+    function handleShare() {
+      const shareUrl = window.location.href;
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        showBlizzToast('团队链接已复制！发送到微信/QQ群即可实时报名。', '分享链接');
+      }).catch(() => {
+        showBlizzToast(shareUrl, '分享链接');
+      });
+    }
+
+    async function toggleHistory(show) {
+      const modal = document.getElementById('history-modal');
+      modal.classList.toggle('hidden', !show);
+      if (show) {
+        await loadDynamicHistory();
+      }
+    }
+
+    async function loadDynamicHistory() {
+      const container = document.getElementById('history-list-box');
+      const adminTag = document.getElementById('super-admin-tag');
+      if (superAdminKey) {
+        adminTag.classList.remove('hidden');
+      } else {
+        adminTag.classList.add('hidden');
+      }
+
+      container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">正在查询云端历史战报...</div>';
+
+      try {
+        const res = await fetch('/api/raid?action=list_history');
+        const data = await res.json();
+
+        if (!data.success || !data.list || data.list.length === 0) {
+          container.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">暂无历史组团记录</div>';
+          return;
+        }
+
+        container.innerHTML = data.list.map(item => {
+          const isCurrent = item.id === currentRaidId;
+          return `
+            <div class="p-2.5 rounded bg-[#0c1322]/90 border ${isCurrent ? 'border-amber-400/70 bg-amber-500/10' : 'border-[#283a58]'} hover:border-sky-500/60 transition-all flex items-center justify-between gap-2">
+              <div onclick="jumpToRaid('${item.id}')" class="flex-1 min-w-0 cursor-pointer">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-slate-100 truncate ${isCurrent ? 'text-amber-300' : ''}">
+                    ${item.title}
+                  </span>
+                  <span class="text-amber-400 font-semibold text-[11px] shrink-0 ml-1.5">${item.enrolled_count}/${item.size}人</span>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-1 truncate">
+                  ${item.raid_time} · ${item.note || '无备注'}
+                </div>
+                <div class="text-[9px] text-slate-500 mt-0.5">
+                  房间: ${item.id} · ${item.created_at ? item.created_at.substring(5, 16) : ''} ${isCurrent ? '· (当前)' : ''}
+                </div>
+              </div>
+              ${superAdminKey ? `
+                <button onclick="deleteRaidAsAdmin('${item.id}', '${item.title}')" class="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-950/60 rounded transition-colors shrink-0 text-xs" title="管理员删除该团">
+                  🗑️
+                </button>
+              ` : ''}
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = '<div class="text-center py-6 text-rose-400 text-xs">拉取历史记录失败，请检查网络</div>';
+      }
+    }
+
+    function jumpToRaid(raidId) {
+      if (raidId === currentRaidId && isReadOnlyMode) {
+        toggleHistory(false);
+        return;
+      }
+      window.location.href = `?id=${raidId}&readonly=1`;
+    }
+
+    async function triggerAdminAuthPrompt() {
+      if (superAdminKey) {
+        if (confirm('当前已是【网站管理员】模式，点击确定可退出管理员身份：')) {
+          superAdminKey = '';
+          localStorage.removeItem('wow_super_admin_key');
+          await loadDynamicHistory();
+        }
+        return;
+      }
+
+      const input = prompt('请输入网站超级管理员口令（默认 admin888）：');
+      if (!input) return;
+
+      try {
+        const res = await fetch('/api/raid', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'admin_auth', superKey: input.trim() })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          superAdminKey = input.trim();
+          localStorage.setItem('wow_super_admin_key', superAdminKey);
+          showBlizzToast('管理员认证成功！历史卡片已解锁删除按钮', '认证成功');
+          await loadDynamicHistory();
+        } else {
+          showBlizzToast(data.error || '口令错误！');
+        }
+      } catch (err) {
+        showBlizzToast('验证异常');
+      }
+    }
+
+    async function deleteRaidAsAdmin(raidId, title) {
+      if (!superAdminKey) return;
+      if (confirm(`【管理员确认】\n确定彻底删除团本【${title}】（房间号: ${raidId}）吗？\n删除后席位名单将永久抹除！`)) {
+        try {
+          const res = await fetch('/api/raid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'admin_delete_raid',
+              superKey: superAdminKey,
+              targetRaidId: raidId
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showBlizzToast('记录已彻底擦除！');
+            if (raidId === currentRaidId) {
+              window.location.href = window.location.pathname;
+            } else {
+              await loadDynamicHistory();
+            }
+          } else {
+            showBlizzToast(data.error || '删除失败');
+          }
+        } catch (err) {
+          showBlizzToast('网络异常');
+        }
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
