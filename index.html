@@ -234,6 +234,7 @@
     .w-20 { width: 5rem; }
     .w-full { width: 100%; }
     .max-w-\[280px\] { max-width: 280px; }
+    .max-w-\[300px\] { max-width: 300px; }
     .max-w-xs { max-width: 20rem; }
     .max-w-sm { max-width: 24rem; }
     .max-w-md { max-width: 28rem; }
@@ -537,6 +538,52 @@
     </div>
   </div>
 
+  <!-- 暴雪风格通用二次确认弹窗（彻底替代原生白框 confirm） -->
+  <div id="blizz-confirm-modal" class="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="blizz-modal rounded-lg p-4 w-full max-w-[300px] text-center space-y-3.5 transition-all">
+      <div class="flex items-center justify-center gap-1.5 text-amber-400 font-bold text-sm tracking-wide">
+        <span>⚠️</span>
+        <span id="blizz-confirm-title">操作确认</span>
+      </div>
+      <p id="blizz-confirm-msg" class="text-xs text-slate-200 leading-relaxed whitespace-pre-line font-medium"></p>
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <button onclick="closeBlizzConfirm()" class="py-2 bg-[#141f35] hover:bg-[#1e2d4a] border border-[#2c4060] text-xs font-semibold text-slate-300 rounded active:scale-95 transition-all">
+          取消
+        </button>
+        <button id="blizz-confirm-ok-btn" class="py-2 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold rounded text-xs shadow active:scale-95 transition-all">
+          确定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 暴雪风格管理员身份认证弹窗（彻底替代原生白框 prompt，且不显示默认密码提示） -->
+  <div id="admin-auth-modal" class="fixed inset-0 z-[60] bg-black/75 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="blizz-modal rounded-lg p-4 w-full max-w-[300px] space-y-3.5 text-center">
+      <div class="flex items-center justify-between pb-2.5 border-b border-[#2a3c5a]">
+        <div class="flex items-center gap-1.5 text-amber-400 font-bold text-sm">
+          <span>🛡️</span>
+          <span>管理员权限认证</span>
+        </div>
+        <button onclick="toggleAdminAuthModal(false)" class="text-slate-400 hover:text-white text-base px-1">✕</button>
+      </div>
+      <form onsubmit="submitAdminAuth(event)" class="space-y-3 text-left">
+        <div class="space-y-1.5">
+          <label class="block text-xs text-slate-300">请输入超级管理员密钥：</label>
+          <input type="password" id="input-super-admin-key" required placeholder="输入后台管理密钥" class="w-full bg-[#0c1322] border border-[#2c4060] rounded px-3 py-2 text-xs text-slate-100 font-mono">
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button type="button" onclick="toggleAdminAuthModal(false)" class="py-2 bg-[#141f35] hover:bg-[#1e2d4a] border border-[#2c4060] text-xs font-semibold text-slate-300 rounded active:scale-95 transition-all">
+            取消
+          </button>
+          <button type="submit" id="btn-admin-auth-submit" class="py-2 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold rounded text-xs shadow active:scale-95 transition-all">
+            确认解锁
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 弹窗 1：开团活动参数设置（仅团长可操作） -->
   <div id="raid-config-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="blizz-modal w-full max-w-md rounded-t-xl sm:rounded-xl p-4 max-h-[92vh] overflow-y-auto">
@@ -740,12 +787,29 @@
       document.getElementById('blizz-toast-modal').classList.add('hidden');
     }
 
+    // 暴雪风格确认框逻辑
+    let pendingConfirmCallback = null;
+    function showBlizzConfirm(msg, onConfirm, title = '操作确认') {
+      document.getElementById('blizz-confirm-title').innerText = title;
+      document.getElementById('blizz-confirm-msg').innerText = msg;
+      pendingConfirmCallback = onConfirm;
+      document.getElementById('blizz-confirm-modal').classList.remove('hidden');
+    }
+    function closeBlizzConfirm() {
+      document.getElementById('blizz-confirm-modal').classList.add('hidden');
+      pendingConfirmCallback = null;
+    }
+    document.getElementById('blizz-confirm-ok-btn').addEventListener('click', () => {
+      const cb = pendingConfirmCallback;
+      closeBlizzConfirm();
+      if (cb) cb();
+    });
+
     function savePasscodeLocally(slotKey, code) {
       mySavedPasscodes[slotKey] = code;
       localStorage.setItem('wow_raid_passcodes', JSON.stringify(mySavedPasscodes));
     }
 
-    // 初始化路由分流：无 id 进集结大厅，有 id 进具体团队
     async function init() {
       renderClassPicker();
       initKeyboardShield();
@@ -755,12 +819,10 @@
       isReadOnlyMode = params.get('readonly') === '1';
 
       if (!currentRaidId) {
-        // 裸域名访问：直接展示集结大厅
         document.getElementById('lobby-view').classList.remove('hidden');
         document.getElementById('raid-view').classList.add('hidden');
         await loadLobbyData();
       } else {
-        // 带房间号访问：进入对应团本花名册
         document.getElementById('lobby-view').classList.add('hidden');
         document.getElementById('raid-view').classList.remove('hidden');
         const localAdmin = localStorage.getItem(`admin_token_${currentRaidId}`);
@@ -771,19 +833,16 @@
       }
     }
 
-    // 返回大厅
     function goToLobby() {
       if (pollingTimer) clearInterval(pollingTimer);
       window.location.href = window.location.pathname;
     }
 
-    // 团长在大厅点击“发起新团”
     async function createNewRaidRoom() {
       const newId = Math.random().toString(36).substring(2, 8);
       const adminToken = 'adm_' + Math.random().toString(36).substring(2, 12);
       localStorage.setItem(`admin_token_${newId}`, adminToken);
 
-      // 立即在云端初始化该团，确保大厅可見并弹出配置
       try {
         await fetch('/api/raid', {
           method: 'POST',
@@ -805,7 +864,6 @@
       window.location.href = `?id=${newId}&setup=1`;
     }
 
-    // 拉取集结大厅全部数据
     async function loadLobbyData() {
       const adminBadge = document.getElementById('lobby-admin-badge');
       if (superAdminKey) adminBadge.classList.remove('hidden');
@@ -829,7 +887,6 @@
       return (Date.now() - createTime) > 48 * 3600 * 1000;
     }
 
-    // 渲染大厅卡片（自动拆分：我参与的团、正在集结、历史封存）
     function renderLobbyCards() {
       const keyword = (document.getElementById('lobby-search-input').value || '').trim().toLowerCase();
       
@@ -861,7 +918,6 @@
         }
       });
 
-      // 1. 渲染“我参与的团队”置顶直通车
       const mySection = document.getElementById('my-active-raids-section');
       const myListEl = document.getElementById('my-active-raids-list');
       if (myRaids.length > 0 && !keyword) {
@@ -871,7 +927,6 @@
         mySection.classList.add('hidden');
       }
 
-      // 2. 渲染“正在集结的团队”
       document.getElementById('lobby-active-count').innerText = `${activeRaids.length} 个活动`;
       const activeListEl = document.getElementById('lobby-active-list');
       if (activeRaids.length === 0) {
@@ -885,7 +940,6 @@
         activeListEl.innerHTML = activeRaids.map(item => buildLobbyCardHtml(item, false, false)).join('');
       }
 
-      // 3. 渲染“历史已封存战报”
       const archSection = document.getElementById('lobby-archived-section');
       const archListEl = document.getElementById('lobby-archived-list');
       if (archivedRaids.length > 0) {
@@ -939,7 +993,6 @@
 
             ${item.note ? `<p class="text-[11px] text-slate-400 truncate mt-1">${item.note}</p>` : ''}
 
-            <!-- 简洁人数进度条 -->
             <div class="w-full h-1.5 bg-[#0c1322] rounded-full overflow-hidden mt-2 border border-[#1e2c45]">
               <div class="h-1.5 ${isFull ? 'bg-amber-400' : 'bg-emerald-400'} transition-all" style="width: ${pct}%"></div>
             </div>
@@ -998,7 +1051,6 @@
 
           updateView();
 
-          // 如果是团长新建团队首次进入，自动弹出开团设置
           const params = new URLSearchParams(window.location.search);
           if (params.get('setup') === '1' && raidState.isLeaderLocal) {
             window.history.replaceState({}, '', `?id=${currentRaidId}`);
@@ -1562,11 +1614,11 @@
       toggleSignupModal(true);
     }
 
-    async function removeTargetPlayer() {
+    function removeTargetPlayer() {
       const p = rosterMap[activeActionSlotId];
       if (!p) return;
 
-      if (confirm(`确定将玩家【${p.name}】从该席位移除登记吗？`)) {
+      showBlizzConfirm(`确定将玩家【${p.name}】从该席位移除登记吗？`, async () => {
         const passcode = mySavedPasscodes[`${currentRaidId}_${activeActionSlotId}`] || '';
         const adminToken = localStorage.getItem(`admin_token_${currentRaidId}`) || '';
 
@@ -1596,7 +1648,7 @@
         } catch (err) {
           showBlizzToast('网络异常，请重试');
         }
-      }
+      }, '移除席位确认');
     }
 
     function copyInviteMacro() {
@@ -1631,42 +1683,65 @@
       });
     }
 
-    async function triggerAdminAuthPrompt() {
+    // 暴雪风格管理员认证弹窗控制
+    function toggleAdminAuthModal(show) {
+      const modal = document.getElementById('admin-auth-modal');
+      modal.classList.toggle('hidden', !show);
+      if (show) {
+        const input = document.getElementById('input-super-admin-key');
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+      }
+    }
+
+    function triggerAdminAuthPrompt() {
       if (superAdminKey) {
-        if (confirm('当前已是【网站管理员】模式，点击确定可退出管理员身份：')) {
+        showBlizzConfirm('当前已处于【网站管理员】模式，确定退出管理员身份吗？', async () => {
           superAdminKey = '';
           localStorage.removeItem('wow_super_admin_key');
           await loadLobbyData();
-        }
+        }, '退出管理模式');
         return;
       }
+      toggleAdminAuthModal(true);
+    }
 
-      const input = prompt('请输入网站超级管理员口令（默认 admin888）：');
-      if (!input) return;
+    async function submitAdminAuth(e) {
+      e.preventDefault();
+      const inputVal = document.getElementById('input-super-admin-key').value.trim();
+      if (!inputVal) return;
+
+      const btn = document.getElementById('btn-admin-auth-submit');
+      btn.innerText = '验证中...';
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/raid', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'admin_auth', superKey: input.trim() })
+          body: JSON.stringify({ action: 'admin_auth', superKey: inputVal })
         });
         const data = await res.json();
         if (res.ok && data.success) {
-          superAdminKey = input.trim();
+          superAdminKey = inputVal;
           localStorage.setItem('wow_super_admin_key', superAdminKey);
-          showBlizzToast('管理员认证成功！卡片已解锁删除按钮', '认证成功');
+          toggleAdminAuthModal(false);
+          showBlizzToast('管理员权限已解锁！大厅卡片已显示删除按钮。', '认证成功');
           await loadLobbyData();
         } else {
-          showBlizzToast(data.error || '口令错误！');
+          showBlizzToast(data.error || '密钥错误，拒绝访问！');
         }
       } catch (err) {
-        showBlizzToast('验证异常');
+        showBlizzToast('验证请求异常');
+      } finally {
+        btn.innerText = '确认解锁';
+        btn.disabled = false;
       }
     }
 
-    async function deleteRaidAsAdmin(raidId, title) {
+    function deleteRaidAsAdmin(raidId, title) {
       if (!superAdminKey) return;
-      if (confirm(`【管理员确认】\n确定彻底删除团本【${title}】（房号: ${raidId}）吗？\n删除后席位名单将永久抹除！`)) {
+      showBlizzConfirm(`确定彻底删除团本【${title}】（房号: ${raidId}）吗？\n删除后席位名单将永久抹除！`, async () => {
         try {
           const res = await fetch('/api/raid', {
             method: 'POST',
@@ -1679,7 +1754,7 @@
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            showBlizzToast('记录已彻底擦除！');
+            showBlizzToast('该团本记录已彻底擦除！');
             await loadLobbyData();
           } else {
             showBlizzToast(data.error || '删除失败');
@@ -1687,7 +1762,7 @@
         } catch (err) {
           showBlizzToast('网络异常');
         }
-      }
+      }, '管理员删除确认');
     }
 
     init();
